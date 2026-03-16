@@ -108,7 +108,7 @@ def process_books(spark, input_path, output_path):
     df = df.drop("split_parts").withColumn("year", F.col("year").cast("int"))
 
     logger.info(f"Writing transformed BOOKS data from {input_path} source to: {output_path}")
-    df.write.mode("overwrite").parquet(output_path)
+    df.coalesce(1).write.mode("overwrite").parquet(output_path)
     logger.info("Write operation completed.")
 
 
@@ -155,7 +155,7 @@ def process_users(spark, input_path, output_path):
     #df.show()
 
     logger.info(f"Writing transformed USERS data from {input_path} source to: {output_path}")
-    df.write.mode("overwrite").parquet(output_path)
+    df.coalesce(1).write.mode("overwrite").parquet(output_path)
     logger.info("Write operation completed.")
 
 
@@ -189,7 +189,7 @@ def process_rating(spark, input_path, output_path):
     logger.info(f'Check missing values for USERS data: {null_amount}\n')
 
     logger.info(f"Writing transformed RATING data from {input_path} source to: {output_path}")
-    df.write.mode("overwrite").parquet(output_path)
+    df.coalesce(1).write.mode("overwrite").parquet(output_path)
     logger.info("Write operation completed.")
 
 
