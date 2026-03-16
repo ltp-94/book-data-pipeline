@@ -28,7 +28,11 @@ sudo chmod -R 777 /workspaces/books-data-pipeline/data/books_output
 
 docker exec -it spark-master /opt/spark/bin/spark-submit \
   --master spark://spark-master:7077 \
-  /opt/spark/work-dir/gcs_spark.py
+  --conf "spark.jars.ivy=/tmp/.ivy2" \
+  --conf "spark.sql.shuffle.partitions=2" \
+  --jars /opt/spark/jars/gcs-connector-4.0.1-shaded.jar \
+
+  /opt/spark/work-dir/pyspark/gcs_spark_transformation.py
 
 
 spark-submit \

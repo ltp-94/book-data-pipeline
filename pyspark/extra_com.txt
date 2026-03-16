@@ -1,0 +1,71 @@
+docker exec -it spark-master /opt/spark/bin/spark-submit \
+  --master spark://spark-master:7077 \
+  --jars /opt/spark/jars/gcs-connector-4.0.1-shaded.jar \
+  --conf "spark.sql.shuffle.partitions=2" \
+  --conf "spark.jars.ivy=/tmp/.ivy2" \
+   --conf "spark.local.dir=/tmp" \
+  --py-files /opt/spark/work-dir/constants.py,/opt/spark/work-dir/pyspark_utils.py \
+  /opt/spark/work-dir/gcs_spark_transformation.py
+
+
+
+docker exec -it spark-master /opt/spark/bin/spark-submit \
+  --master spark://spark-master:7077 \
+  --jars /opt/spark/jars/gcs-connector-4.0.1-shaded.jar \
+  --driver-memory 512M \
+  --executor-memory 800M \
+  --executor-cores 1 \
+  --conf "spark.sql.shuffle.partitions=2" \
+  --conf "spark.default.parallelism=2" \
+  --conf "spark.local.dir=/tmp" \
+  --conf "spark.memory.fraction=0.6" \
+  --py-files /opt/spark/work-dir/constants.py,/opt/spark/work-dir/pyspark_utils.py \
+  /opt/spark/work-dir/gcs_spark_transformation.py
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  - id: gcs_spark_books
+        type: io.kestra.plugin.spark.SparkCLI
+        inputFiles:
+          gcp-key.json: "{{ kv('GCP_CREDS') }}"
+        containerImage: apache/spark:4.0.1-java21-r
+        env:
+          GCP_KEY_PATH: "gcp-key.json"
+          # Necessary for Java 21 + Spark 4.0
+          SPARK_DRIVER_JAVA_OPTS: "-Djdk.security.allowNonCausingSubstitutions=true --add-opens=java.base/java.nio=ALL-UNNAMED"
+          SPARK_EXECUTOR_JAVA_OPTS: "-Djdk.security.allowNonCausingSubstitutions=true --add-opens=java.base/java.nio=ALL-UNNAMED"
+        taskRunner:
+          type: io.kestra.plugin.scripts.runner.docker.Docker
+          # FIX 1: Join the same network as your spark-master
+          networkMode: kestra-spark-network
+          user: root
+          # FIX 2: Mount the JAR from your Codespace host into the Kestra container
+          volumes:
+            - /workspaces/book-data-pipeline/gcs-connector-4.0.1-shaded.jar:/opt/spark/jars/gcs-connector-4.0.1-shaded.jar
+        commands:
+          - >
+            spark-submit
+            --master spark://spark-master:7077
+            --jars /opt/spark/jars/gcs-connector-4.0.1-shaded.jar
+            --conf "spark.sql.shuffle.partitions=2"
+            --conf "spark.local.dir=/tmp"
+            --conf "spark.hadoop.google.cloud.auth.service.account.enable=true"
+            --conf "spark.hadoop.google.cloud.auth.service.account.json.keyfile=gcp-key.json"
+            --py-files pyspark/constants.py,pyspark/pyspark_utils.py
+            pyspark/gcs_spark_transformation.py

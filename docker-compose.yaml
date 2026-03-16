@@ -29,11 +29,10 @@ services:
       kestra:
         condition: service_healthy
     command:
-    - |
+      - |
         terraform init &&
-        # Use the full project/dataset path for the import
         terraform import google_storage_bucket.books-bucket kestra-books-bucket-latypov || true &&
-        terraform import google_bigquery_dataset.demo-dataset projects/books-pipeline-490008/datasets/books_dataset_project || true &&
+        terraform import google_bigquery_dataset.demo-dataset books-pipeline-490008:books_dataset_project || true &&
         terraform plan -out=tfplan &&
         terraform apply -auto-approve
     networks:
@@ -53,17 +52,13 @@ services:
       - SPARK_DRIVER_JAVA_OPTS=-Djdk.security.allowNonCausingSubstitutions=true
     volumes:
       - ./service-account.json:/opt/spark/conf/gcp-key.json:ro
-      - ./pyspark/gcs_spark_transformation.py:/opt/spark/work-dir/gcs_spark_transformation.py
+      - ./pyspark:/opt/spark/work-dir
       #- ./pyspark/gcs_spark_users.py:/opt/spark/work-dir/gcs_spark_users.py
       - ./pyspark/spark_books.py:/opt/spark/work-dir/spark_books.py
       #- ./pyspark/spark_users.py:/opt/spark/work-dir/spark_users.py
       #- ./pyspark/spark_ratings.py:/opt/spark/work-dir/spark_ratings.py
       - ./data:/workspaces/books-data-pipeline/data # <-- mount data folder
       - ./gcs-connector-4.0.1-shaded.jar:/opt/spark/jars/gcs-connector-4.0.1-shaded.jar:ro
-    deploy:
-      resources:
-        limits:
-          memory: 512M 
     networks:
       - kestra-spark-network
     restart: unless-stopped
@@ -79,17 +74,12 @@ services:
       - GCP_KEY_PATH=/opt/spark/conf/gcp-key.json
       - SPARK_WORKER_CORES=1
       - SPARK_WORKER_MEMORY=1G
-      - SPARK_EXECUTOR_MEMORY=800m
       - SPARK_WORKER_OPTS=--add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/javax.security.auth=ALL-UNNAMED -Djdk.security.allowNonCausingSubstitutions=true
       - SPARK_EXECUTOR_JAVA_OPTS=-Djdk.security.allowNonCausingSubstitutions=true
     volumes:
       - ./service-account.json:/opt/spark/conf/gcp-key.json:ro
       - ./data:/workspaces/books-data-pipeline/data # <-- mount data folder here too
       - ./gcs-connector-4.0.1-shaded.jar:/opt/spark/jars/gcs-connector-4.0.1-shaded.jar:ro
-    deploy:
-      resources:
-        limits:
-          memory: 1.2G # <--- Hard limit
     networks:
       - kestra-spark-network
     restart: unless-stopped

@@ -70,6 +70,7 @@ tasks:
             spark-submit 
             --master spark://spark-master:7077
             --conf "spark.jars.ivy=/tmp/.ivy2"
+            --conf "spark.local.dir=/tmp" \
             --files gcp-key.json
             --conf "spark.hadoop.google.cloud.auth.service.account.enable=true"
             --conf "spark.hadoop.google.cloud.auth.service.account.json.keyfile=gcp-key.json"

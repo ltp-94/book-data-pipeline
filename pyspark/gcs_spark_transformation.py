@@ -42,6 +42,10 @@ spark = (SparkSession.builder
 
 logger.info(f"\n\n\n# --- 3. SPARK SESSION ---")
 logger.info(f"Spark version: {spark.version}")
+# Verify the Hadoop Configuration for GCS
+hadoop_conf = spark._jsc.hadoopConfiguration()
+active_region = hadoop_conf.get("fs.gs.region")
+logger.info(f"VERIFICATION: GCS Connector is configured for region: {active_region}")
 # Reduce Spark internal noise
 spark.sparkContext.setLogLevel("WARN")
 
@@ -108,7 +112,7 @@ def process_books(spark, input_path, output_path):
     df = df.drop("split_parts").withColumn("year", F.col("year").cast("int"))
 
     logger.info(f"Writing transformed BOOKS data from {input_path} source to: {output_path}")
-    df.coalesce(1).write.mode("overwrite").parquet(output_path)
+    df.write.mode("overwrite").parquet(output_path)
     logger.info("Write operation completed.")
 
 
@@ -155,7 +159,7 @@ def process_users(spark, input_path, output_path):
     #df.show()
 
     logger.info(f"Writing transformed USERS data from {input_path} source to: {output_path}")
-    df.coalesce(1).write.mode("overwrite").parquet(output_path)
+    df.write.mode("overwrite").parquet(output_path)
     logger.info("Write operation completed.")
 
 
@@ -189,7 +193,7 @@ def process_rating(spark, input_path, output_path):
     logger.info(f'Check missing values for USERS data: {null_amount}\n')
 
     logger.info(f"Writing transformed RATING data from {input_path} source to: {output_path}")
-    df.coalesce(1).write.mode("overwrite").parquet(output_path)
+    df.write.mode("overwrite").parquet(output_path)
     logger.info("Write operation completed.")
 
 
