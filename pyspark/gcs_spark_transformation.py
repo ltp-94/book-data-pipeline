@@ -36,6 +36,8 @@ spark = (SparkSession.builder
     .config("spark.hadoop.fs.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem")
     .config("spark.hadoop.google.cloud.auth.service.account.enable", "true")
     .config("spark.hadoop.google.cloud.auth.service.account.json.keyfile", key_path)
+    .config("spark.hadoop.fs.gs.project.id", "books-pipeline-490008")
+    .config("spark.hadoop.fs.gs.region", "europe-west10")
     .getOrCreate())
 
 logger.info(f"\n\n\n# --- 3. SPARK SESSION ---")

@@ -18,6 +18,9 @@ docker image rm python:3.11-slim postgres:18 kestra/kestra:v1.1 apache/spark:4.0
 
 
 java -version
+# Using SDKMAN (standard in Codespaces)
+sdk install java 17.0.10-ms
+sdk use java 17.0.10-ms
 readlink -f $(which java)
 export GOOGLE_APPLICATION_CREDENTIALS="/workspaces/books-recommendation-data-pipeline/service-account.json"
 
