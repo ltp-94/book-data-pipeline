@@ -36,16 +36,10 @@ spark = (SparkSession.builder
     .config("spark.hadoop.fs.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem")
     .config("spark.hadoop.google.cloud.auth.service.account.enable", "true")
     .config("spark.hadoop.google.cloud.auth.service.account.json.keyfile", key_path)
-    .config("spark.hadoop.fs.gs.project.id", "books-pipeline-490008")
-    .config("spark.hadoop.fs.gs.region", "europe-west10")
     .getOrCreate())
 
 logger.info(f"\n\n\n# --- 3. SPARK SESSION ---")
 logger.info(f"Spark version: {spark.version}")
-# Verify the Hadoop Configuration for GCS
-hadoop_conf = spark._jsc.hadoopConfiguration()
-active_region = hadoop_conf.get("fs.gs.region")
-logger.info(f"VERIFICATION: GCS Connector is configured for region: {active_region}")
 # Reduce Spark internal noise
 spark.sparkContext.setLogLevel("WARN")
 
@@ -56,8 +50,7 @@ def process_books(spark, input_path, output_path):
     logger.info(f"\n\n\n# --- 4. PROCESS BOOKS DATA ---")
     logger.info(f"Reading CSV from: {input_path}")
     
-    df = spark.read.options(**Config.CSV_OPTIONS).csv(input_path)
-
+    df = spark.read.options(**Config.CSV_OPTIONS).schema(Schemas.BOOKS_SCHEMA).csv(input_path)
     logger.info("Schema loaded. Printing schema to stdout:")
     df.printSchema()
 
@@ -65,17 +58,7 @@ def process_books(spark, input_path, output_path):
     logger.info(f"CSV Loaded successfully. Total rows: {row_count}")
     
     # df.show() outputs to stdout by default, which is fine for visual logs
-    #df.show(5)
-
-    # Rename columns
-    df = (df.withColumnRenamed("Book-Title", "title")
-        .withColumnRenamed("Book-Author", "author")
-        .withColumnRenamed("Year-Of-Publication", "year")
-        .withColumnRenamed("Publisher", "publisher")
-        .withColumnRenamed("Image-URL-S", "image_url_small")
-        .withColumnRenamed("Image-URL-M", "image_url_medium")
-        .withColumnRenamed("Image-URL-L", "image_url_large")
-        )
+    df.show(5)
 
     isbn_distinct = df.select('ISBN').distinct().count()
     logger.info(f"Distinct ISBN count: {isbn_distinct}")
@@ -110,6 +93,7 @@ def process_books(spark, input_path, output_path):
                     )
 
     df = df.drop("split_parts").withColumn("year", F.col("year").cast("int"))
+    df = df.withColumn("ingested_at", F.current_timestamp())
 
     logger.info(f"Writing transformed BOOKS data from {input_path} source to: {output_path}")
     df.write.mode("overwrite").parquet(output_path)
@@ -125,7 +109,7 @@ def process_users(spark, input_path, output_path):
     logger.info(f"\n\n\n# --- 5. PROCESS USERS DATA ---")
     logger.info(f"Reading Users Data from: {input_path}")
 
-    df = spark.read.options(**Config.CSV_OPTIONS).csv(input_path)
+    df = spark.read.options(**Config.CSV_OPTIONS).schema(Schemas.USERS_SCHEMA).csv(input_path)
 
     logger.info(f"Schema for USERS data loaded")
 
@@ -134,12 +118,8 @@ def process_users(spark, input_path, output_path):
     row_count = df.count()
     logger.info(f"Total rows for USERS: {row_count}")
 
-    # logger.info("Sample rows USERS data:")
-    # df.show(5)
-
-    df = df.withColumnRenamed('User-ID', 'user_id') \
-            .withColumnRenamed('Location', 'location') \
-            .withColumnRenamed('Age', 'age')
+    logger.info("Sample rows USERS data:")
+    df.show(5)
 
     df = df.withColumn("age", F.col("age").cast("int"))
 
@@ -155,8 +135,9 @@ def process_users(spark, input_path, output_path):
     df = split_location(df, "country", 2, Config.EXCEPTIONS_LIST)
 
     df = df.drop(F.col("split_parts"))
+    df = df.withColumn("ingested_at", F.current_timestamp())
 
-    #df.show()
+    df.show()
 
     logger.info(f"Writing transformed USERS data from {input_path} source to: {output_path}")
     df.write.mode("overwrite").parquet(output_path)
@@ -173,7 +154,7 @@ def process_rating(spark, input_path, output_path):
     logger.info(f"\n\n\n# --- 5. PROCESS RATING DATA ---")
     logger.info(f"Reading RATING Data from: {input_path}")
 
-    df = spark.read.options(**Config.CSV_OPTIONS).csv(input_path)
+    df = spark.read.options(**Config.CSV_OPTIONS).schema(Schemas.RATINGS_SCHEMA).csv(input_path)
 
     logger.info(f"Schema for RATING data loaded")
 
@@ -182,15 +163,13 @@ def process_rating(spark, input_path, output_path):
     row_count = df.count()
     logger.info(f"Total rows for RATING data: {row_count}")
 
-    # logger.info("Sample rows RATING data:")
-    # df.show(5)
-
-    df = df.withColumnRenamed("User-ID", "user_id") \
-            .withColumnRenamed("Book-Rating", "book_rating")
+    logger.info("Sample rows RATING data:")
+    df.show(5)
     
     # Null checks
     null_amount = null_check(df)
     logger.info(f'Check missing values for USERS data: {null_amount}\n')
+    df = df.withColumn("ingested_at", F.current_timestamp())
 
     logger.info(f"Writing transformed RATING data from {input_path} source to: {output_path}")
     df.write.mode("overwrite").parquet(output_path)
