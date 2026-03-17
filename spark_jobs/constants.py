@@ -22,7 +22,7 @@ class Config:
 
     # FIXED: Changed Rating.csv to Ratings.csv
     INPUT_PATH_RATING = "gs://kestra-books-bucket-latypov/raw/Ratings.csv"
-    OUTPUT_PATH_RATING = "gs://kestra-books-bucket-latypov/pyspark_transformed/rating"
+    OUTPUT_PATH_RATING = "gs://kestra-books-bucket-latypov/pyspark_transformed/ratings"
 
     CSV_OPTIONS = {
         "header": True,
