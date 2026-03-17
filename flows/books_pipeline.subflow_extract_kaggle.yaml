@@ -1,0 +1,33 @@
+id: subflow_extract_kaggle
+namespace: books_pipeline
+
+tasks:
+  - id: working_dir
+    type: io.kestra.plugin.core.flow.WorkingDirectory
+    tasks:
+      - id: download_kaggle
+        type: io.kestra.plugin.scripts.shell.Commands
+        taskRunner:
+          type: io.kestra.plugin.scripts.runner.docker.Docker
+        containerImage: python:3.11-slim
+        env:
+          KAGGLE_USERNAME: "{{ kv('KAGGLE_USERNAME') }}"
+          KAGGLE_KEY: "{{ kv('KAGGLE_KEY') }}"
+        commands:
+          - pip install kaggle
+          - kaggle datasets download -d arashnic/book-recommendation-dataset
+          - apt-get update && apt-get install -y unzip
+          - mkdir -p top_rated_books
+          - unzip book-recommendation-dataset.zip -d top_rated_books
+        outputFiles:
+          - "top_rated_books/*.csv"
+        
+  - id: upload_files
+    type: io.kestra.plugin.core.flow.ForEach
+    values: ["Books.csv", "Users.csv", "Ratings.csv"]
+    tasks:
+      - id: upload_to_gcs
+        type: io.kestra.plugin.gcp.gcs.Upload
+        from: "{{ outputs.download_kaggle.outputFiles['top_rated_books/' ~ taskrun.value] }}"
+        to: "gs://{{ kv('GCP_BUCKET_NAME') }}/raw/{{ taskrun.value }}"
+        serviceAccount: "{{ kv('GCP_CREDS') }}"

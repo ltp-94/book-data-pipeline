@@ -1,0 +1,71 @@
+id: subflow_bigquery_load
+namespace: books_pipeline
+
+tasks:
+  - id: load_books
+    type: io.kestra.plugin.gcp.bigquery.Query
+    serviceAccount: "{{ kv('GCP_CREDS') }}"
+    sql: |
+      -- 1. Drop to clear the old Interval 1 metadata once and for all
+      DROP TABLE IF EXISTS `{{ kv('GCP_PROJECT_ID') }}.{{ kv('GCP_DATASET') }}.books_data`;
+
+      -- 2. Single atomic command that defines schema, partition, cluster, and loads data
+      LOAD DATA OVERWRITE `{{ kv('GCP_PROJECT_ID') }}.{{ kv('GCP_DATASET') }}.books_data`
+      (
+        isbn STRING,
+        title STRING,
+        author STRING,
+        year INT64,
+        publisher STRING,
+        image_url_small STRING,
+        image_url_medium STRING,
+        image_url_large STRING,
+        ingested_at TIMESTAMP
+      )
+      PARTITION BY RANGE_BUCKET(year, GENERATE_ARRAY(1800, 2030, 10))
+      CLUSTER BY author
+      FROM FILES (
+        format = 'PARQUET',
+        uris = ['gs://{{ kv('GCP_BUCKET_NAME') }}/pyspark_transformed/books/*.parquet']
+      );
+
+  - id: load_users
+    type: io.kestra.plugin.gcp.bigquery.Query
+    serviceAccount: "{{ kv('GCP_CREDS') }}"
+    sql: |
+      DROP TABLE IF EXISTS `{{ kv('GCP_PROJECT_ID') }}.{{ kv('GCP_DATASET') }}.users_data`;
+
+      LOAD DATA OVERWRITE `{{ kv('GCP_PROJECT_ID') }}.{{ kv('GCP_DATASET') }}.users_data`
+      (
+        user_id INT64,
+        location STRING,
+        age INT64,
+        city STRING,
+        region STRING,
+        country STRING,
+        ingested_at TIMESTAMP
+      )
+      PARTITION BY RANGE_BUCKET(age, GENERATE_ARRAY(0, 100, 10))
+      CLUSTER BY country
+      FROM FILES (
+        format = 'PARQUET',
+        uris = ['gs://{{ kv('GCP_BUCKET_NAME') }}/pyspark_transformed/users/*.parquet']
+      );
+
+  - id: load_ratings
+    type: io.kestra.plugin.gcp.bigquery.Query
+    serviceAccount: "{{ kv('GCP_CREDS') }}"
+    sql: |
+      DROP TABLE IF EXISTS `{{ kv('GCP_PROJECT_ID') }}.{{ kv('GCP_DATASET') }}.ratings_data`;
+
+      LOAD DATA OVERWRITE `{{ kv('GCP_PROJECT_ID') }}.{{ kv('GCP_DATASET') }}.ratings_data`
+      (
+        user_id INT64,
+        isbn STRING,
+        book_rating INT64,
+        ingested_at TIMESTAMP
+      )
+      FROM FILES (
+        format = 'PARQUET',
+        uris = ['gs://{{ kv('GCP_BUCKET_NAME') }}/pyspark_transformed/ratings/*.parquet']
+      );

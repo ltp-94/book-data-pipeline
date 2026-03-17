@@ -1,0 +1,39 @@
+id: subflow_spark_transform
+namespace: books_pipeline
+
+tasks:
+  - id: processing_phase
+    type: io.kestra.plugin.core.flow.WorkingDirectory
+    tasks:
+      - id: clone_repository
+        type: io.kestra.plugin.git.Clone
+        url: https://github.com/OleksiiLatypov/books-data-pipeline
+        branch: main
+
+      - id: gcs_spark_transformation
+        type: io.kestra.plugin.spark.SparkCLI
+        inputFiles:
+          gcp-key.json: "{{ kv('GCP_CREDS') }}"
+        containerImage: apache/spark:4.0.1-java21-r
+        env:
+          GCP_KEY_PATH: "gcp-key.json"
+          SPARK_DRIVER_JAVA_OPTS: "-Djdk.security.allowNonCausingSubstitutions=true --add-opens=java.base/java.nio=ALL-UNNAMED"
+          SPARK_EXECUTOR_JAVA_OPTS: "-Djdk.security.allowNonCausingSubstitutions=true --add-opens=java.base/java.nio=ALL-UNNAMED"
+        taskRunner:
+          type: io.kestra.plugin.scripts.runner.docker.Docker
+          networkMode: kestra-spark-network
+          user: root
+        commands:
+          - >
+            spark-submit
+            --master "local[2]"
+            --conf "spark.jars.ivy=/tmp/.ivy2"
+            --conf "spark.local.dir=/tmp"
+            --conf "spark.sql.shuffle.partitions=2"
+            --files gcp-key.json
+            --conf "spark.hadoop.google.cloud.auth.service.account.enable=true"
+            --conf "spark.hadoop.google.cloud.auth.service.account.json.keyfile=gcp-key.json"
+            --conf "spark.hadoop.fs.gs.project.id={{ kv('GCP_PROJECT_ID') }}"
+            --conf "spark.hadoop.fs.gs.region={{ kv('GCP_LOCATION') }}"
+            --packages com.google.cloud.bigdataoss:gcs-connector:hadoop3-2.2.17 
+            spark_jobs/gcs_spark_transformation.py

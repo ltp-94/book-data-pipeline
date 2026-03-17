@@ -48,13 +48,13 @@ class Schemas:
     ])
 
     USERS_SCHEMA = StructType([
-        StructField("user_id", StringType(), True),
+        StructField("user_id", IntegerType(), True),
         StructField("location", StringType(), True),
         StructField("age", IntegerType(), True)
     ])
 
     RATINGS_SCHEMA = StructType([
-        StructField("user_id", StringType(), True),
+        StructField("user_id", IntegerType(), True),
         StructField("ISBN", StringType(), True),
         StructField("book_rating", IntegerType(), True)
     ])
