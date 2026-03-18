@@ -11,6 +11,54 @@ class Config:
                     }
 
     EXCEPTIONS_LIST = ["ny", "nyc", "la", "dc", "sf", "usa", "uk", "uae", "eu", "u.a.e"]
+    NOISE_TOKENS = ["n/a", "null", "none", "unknown", "", "n/a,"]
+    VALID_COUNTRIES = [
+    # North America & Caribbean
+    "usa", "united states", "u.s.a.", "united states of america", "canada", "mexico", 
+    "cuba", "jamaica", "bahamas", "barbados", "dominican republic", "haiti", "puerto rico", 
+    "trinidad and tobago", "costa rica", "guatemala", "honduras", "el salvador", "nicaragua", 
+    "panama", "belize", "greenland", "bermuda",
+
+    # South America
+    "brazil", "argentina", "chile", "colombia", "peru", "venezuela", "ecuador", 
+    "bolivia", "paraguay", "uruguay", "guyana", "suriname",
+
+    # Europe
+    "uk", "united kingdom", "u.k.", "england", "scotland", "wales", "northern ireland", 
+    "ireland", "germany", "france", "italy", "spain", "portugal", "netherlands", 
+    "belgium", "austria", "switzerland", "sweden", "norway", "denmark", "finland", 
+    "iceland", "poland", "czech republic", "slovakia", "hungary", "romania", "bulgaria", 
+    "greece", "turkey", "russia", "ukraine", "belarus", "moldova", "estonia", "latvia", 
+    "lithuania", "croatia", "serbia", "slovenia", "bosnia and herzegovina", "montenegro", 
+    "albania", "north macedonia", "kosovo", "luxembourg", "malta", "cyprus", "monaco", 
+    "andorra", "liechtenstein", "san marino", "vatican city", "faroe islands",
+
+    # Asia
+    "china", "japan", "south korea", "north korea", "india", "pakistan", "bangladesh", 
+    "sri lanka", "nepal", "bhutan", "maldives", "taiwan", "hong kong", "macau", 
+    "vietnam", "thailand", "philippines", "malaysia", "singapore", "indonesia", 
+    "myanmar", "burma", "cambodia", "laos", "brunei", "east timor", "kazakhstan", 
+    "uzbekistan", "turkmenistan", "kyrgyzstan", "tajikistan", "mongolia", "afghanistan",
+
+    # Middle East
+    "israel", "palestine", "iran", "iraq", "saudi arabia", "uae", "united arab emirates", 
+    "u.a.e.", "qatar", "kuwait", "oman", "jordan", "lebanon", "syria", "yemen", 
+    "bahrain", "armenia", "azerbaijan", "georgia",
+
+    # Africa
+    "egypt", "morocco", "algeria", "tunisia", "libya", "south africa", "nigeria", 
+    "kenya", "ghana", "ethiopia", "tanzania", "uganda", "sudan", "south sudan", 
+    "congo", "dr congo", "ivory coast", "cote d'ivoire", "senegal", "cameroon", 
+    "angola", "zimbabwe", "zambia", "botswana", "namibia", "mozambique", "madagascar", 
+    "mauritius", "seychelles", "rwanda", "burundi", "somalia", "eritrea", "djibouti", 
+    "mali", "niger", "chad", "burkina faso", "guinea", "sierra loren", "liberia", 
+    "togo", "benin", "gabon", "equatorial guinea", "gambia", "malawi", "lesotho", "swaziland", "eswatini",
+
+    # Oceania
+    "australia", "new zealand", "fiji", "papua new guinea", "samoa", "tonga", 
+    "vanuatu", "solomon islands", "kiribati", "micronesia", "palau", "marshall islands", 
+    "tuvalu", "nauru"
+    ]
 
     # --- PATHS ---
     # Ensure these names match EXACTLY what is in your GCS bucket

@@ -130,9 +130,10 @@ def process_users(spark, input_path, output_path):
     logger.info(f'Check missing values for USERS data: {null_amount}\n')
      
 
-    df = split_location(df, "city", 0, Config.EXCEPTIONS_LIST)
-    df = split_location(df, "region", 1, Config.EXCEPTIONS_LIST)
-    df = split_location(df, "country", 2, Config.EXCEPTIONS_LIST)
+    # df = split_location(df, "city", 0, Config.EXCEPTIONS_LIST)
+    # df = split_location(df, "region", 1, Config.EXCEPTIONS_LIST)
+    # df = split_location(df, "country", 2, Config.EXCEPTIONS_LIST)
+    df = split_location(df)
 
     df = df.drop(F.col("split_parts"))
     df = df.withColumn("ingested_at", F.current_timestamp())
