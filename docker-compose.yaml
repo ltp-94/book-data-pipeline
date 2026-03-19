@@ -52,9 +52,10 @@ services:
       - SPARK_DRIVER_JAVA_OPTS=-Djdk.security.allowNonCausingSubstitutions=true
     volumes:
       - ./service-account.json:/opt/spark/conf/gcp-key.json:ro
-      - ./spark_jobs/gcs_spark_transformation.py:/opt/spark/work-dir/gcs_spark_transformation.py
+      #- ./spark_jobs/gcs_spark_transformation.py:/opt/spark/work-dir/gcs_spark_transformation.py
       #- ./pyspark/gcs_spark_users.py:/opt/spark/work-dir/gcs_spark_users.py
-      - ./spark_jobs/spark_books.py:/opt/spark/work-dir/spark_books.py
+      - ./spark_jobs:/opt/spark/work-dir
+      #- ./spark_jobs/spark_books.py:/opt/spark/work-dir/spark_books.py
       #- ./pyspark/spark_users.py:/opt/spark/work-dir/spark_users.py
       #- ./pyspark/spark_ratings.py:/opt/spark/work-dir/spark_ratings.py
       - ./data:/workspaces/books-data-pipeline/data # <-- mount data folder
@@ -78,6 +79,7 @@ services:
       - SPARK_EXECUTOR_JAVA_OPTS=-Djdk.security.allowNonCausingSubstitutions=true
     volumes:
       - ./service-account.json:/opt/spark/conf/gcp-key.json:ro
+      - ./spark_jobs:/opt/spark/work-dir
       - ./data:/workspaces/books-data-pipeline/data # <-- mount data folder here too
       - ./gcs-connector-4.0.1-shaded.jar:/opt/spark/jars/gcs-connector-4.0.1-shaded.jar:ro
     networks:

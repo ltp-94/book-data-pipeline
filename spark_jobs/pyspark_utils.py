@@ -1,187 +1,47 @@
-import logging
 from pyspark.sql import functions as F
 from constants import Config
 
-
-# Setup logger for the utils file
-logger = logging.getLogger(__name__)
-
-
-
-from pyspark.sql import functions as F
-
-
-# ================= CLEANING =================
-
 def clean_value(col):
-
-    """
-
-    Basic cleaning:
-
-    - lower
-
-    - trim
-
-    - remove quotes, commas, slashes
-
-    - normalize spaces
-
-    """
-
+    """Basic string cleanup: lower, trim, remove quotes/slashes."""
     return F.trim(
-
         F.lower(
-
-            F.regexp_replace(
-
-                F.regexp_replace(col, r'[,\"\\]', ''),
-
-                r'\s+',
-
-                ' '
-
-            )
-
+            F.regexp_replace(col, r'[,\"\\]', '')
         )
-
     )
 
-
-def clean_and_normalize(col):
-    """
-    Normalize values:
-    - noise → "Unknown"
-    - variants (USA, UK, UAE) → Standardized Acronyms
-    - exceptions → UPPER (ny, la, etc.)
-    - others → Title Case
-    """
+def clean_simple(col):
+    """Simple Title Case for non-mapped values."""
     cleaned = clean_value(col)
-
-    # 1. Apply normalization map first to a temporary column expression
-    normalized = (
-        F.when(cleaned.isin(Config.USA_VARIANTS), F.lit("USA"))
-        .when(cleaned.isin(Config.UK_VARIANTS), F.lit("UK"))
-        .when(cleaned.isin(Config.UAE_VARIANTS), F.lit("UAE"))
-        .otherwise(cleaned)
-    )
-
-    # 2. Use the 'normalized' variable for the final logic
     return (
-        F.when(normalized.isNull() | normalized.isin(Config.NOISE_TOKENS), F.lit("Unknown"))
-        .when(normalized.isin(Config.EXCEPTIONS_LIST), F.upper(normalized))
-        # Add a check to prevent Initcap from turning "USA" into "Usa"
-        .when(normalized.isin(["USA", "UK", "UAE"]), normalized) 
-        .otherwise(F.initcap(normalized))
+        F.when(cleaned.isNull() | (cleaned == "") | cleaned.isin(Config.NOISE_TOKENS), F.lit("Unknown"))
+        .when(cleaned.isin(Config.EXCEPTIONS_LIST), F.upper(cleaned))
+        .otherwise(F.initcap(cleaned))
     )
 
-
-# ================= SPLIT LOCATION =================
-
-def split_location(df):
-
-    parts = F.split(F.col("location"), ", ")
+def split_location_raw(df):
+    """Splits location safely by checking array size before accessing indices."""
+    # Using regex to handle comma with or without space
+    parts = F.split(F.col("location"), r",\s*")
     size = F.size(parts)
-
-    # --- safe access ---
-
-    first = F.when(size >= 1, parts.getItem(0))
-    second = F.when(size >= 2, parts.getItem(1))
-
-    third = F.when(size >= 3, parts.getItem(2))
-
-    last = F.when(size >= 1, parts.getItem(size - 1))
-
-    pre_last = F.when(size >= 2, parts.getItem(size - 2))
-
-    # --- detect address ---
-
-    first_has_digits = first.rlike(r"\d")
-
-    # --- cleaned values for logic ---
-
-    last_clean = clean_value(last)
-
-    df = (
-
-        df
-
-        # ================= COUNTRY =================
-
-        .withColumn(
-
-            "country",
-
-            F.when(
-
-                (size >= 1) & (last_clean.isin(Config.VALID_COUNTRIES)),
-
-                clean_and_normalize(last)
-
-            ).otherwise(F.lit("Unknown"))
-
-        )
-
-        # ================= CITY =================
-
-        .withColumn(
-
-            "city",
-
-            F.when(
-
-                (size >= 3) & first_has_digits,
-
-                clean_and_normalize(second)  # skip address
-
-            ).when(
-
-                size >= 2,
-
-                clean_and_normalize(first)
-
-            ).when(
-
-                size == 1,
-
-                clean_and_normalize(first)
-
-            ).otherwise(F.lit("Unknown"))
-
-        )
-
-        # ================= REGION =================
-
-        .withColumn(
-
-            "region",
-
-            F.when(
-
-                (size >= 4) & first_has_digits,
-
-                clean_and_normalize(third)  # shifted because of address
-
-            ).when(
-
-                size >= 3,
-
-                clean_and_normalize(pre_last)
-
-            ).when(size >=2, clean_and_normalize(last)).otherwise(F.lit("Unknown"))
-        )
-    )
-    return df
- 
+    
+    return df.withColumn("loc_size", size) \
+             .withColumn("raw_first_part", 
+                         F.when(size >= 1, clean_value(parts.getItem(0)))) \
+             .withColumn("raw_second_part", 
+                         F.when(size >= 2, clean_value(parts.getItem(1)))) \
+             .withColumn("raw_last_part", 
+                         F.when(size >= 1, clean_value(parts.getItem(size - 1)))) \
+             .withColumn("raw_pre_last_part", 
+                         F.when(size >= 2, clean_value(parts.getItem(size - 2))))
 
 
 def null_check(df, table_name="Data"):
-    """Checks and logs null counts for all columns."""
-    # Use the table_name variable here!
-    logger.info(f'\nCheck missing values for {table_name}:\n') 
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f'\nChecking nulls for {table_name}:')
     for c in df.columns:
-        null_counts = df.filter(df[c].isNull()).count()
-        if null_counts > 0:
-            logger.warning(f"Column '{c}': {null_counts} null values found")
+        cnt = df.filter(df[c].isNull()).count()
+        if cnt > 0:
+            logger.warning(f"Column '{c}': {cnt} nulls")
         else:
             logger.info(f"Column '{c}': No nulls")

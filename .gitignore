@@ -9,6 +9,9 @@
 data/*.csv
 data/books_output/
 
+#spark-jobs
+spark_jobs/__pycache__
+
 # Terraform local files
 terraform/.terraform/
 terraform/.terraform.lock.hcl

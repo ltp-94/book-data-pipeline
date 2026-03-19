@@ -4,7 +4,7 @@ import logging
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from constants import Config, Schemas
-from pyspark_utils import split_location, null_check
+from pyspark_utils import split_location_raw, null_check
 
 # --- 1. CONFIGURE LOGGING ---
 logging.basicConfig(
@@ -106,41 +106,64 @@ def process_books(spark, input_path, output_path):
 
 
 def process_users(spark, input_path, output_path):
-    logger.info(f"\n\n\n# --- 5. PROCESS USERS DATA ---")
-    logger.info(f"Reading Users Data from: {input_path}")
+    logger.info("# --- PROCESS USERS DATA ---")
+    
+    # 1. CREATE LOOKUP DATAFRAME (The Secret Sauce)
+    # We combine standard countries and specific variants (U.s.a., etc.)
+    lookup_list = []
+    for c in Config.VALID_COUNTRIES:
+        lookup_list.append((c.lower(), c))
+    for raw, clean in Config.COUNTRY_MAPPING.items():
+        lookup_list.append((raw.lower(), clean))
+    
+    # Remove duplicates and create DF
+    lookup_df = spark.createDataFrame(list(set(lookup_list)), ["raw_name", "clean_country"])
 
+    # 2. READ DATA
     df = spark.read.options(**Config.CSV_OPTIONS).schema(Schemas.USERS_SCHEMA).csv(input_path)
-
-    logger.info(f"Schema for USERS data loaded")
-
-    df.printSchema()
-
-    row_count = df.count()
-    logger.info(f"Total rows for USERS: {row_count}")
-
-    logger.info("Sample rows USERS data:")
-    df.show(5)
-
+    
+    # 3. FIX AGE (Decimal String -> Float -> Int)
     df = df.withColumn("age", F.expr("try_cast(age AS float)").cast("int"))
 
-    #df = df.withColumn('split_parts', F.split(F.col("location"), ", "))
+    # 4. SPLIT LOCATION
+    df = split_location_raw(df)
+    
+    # 5. BROADCAST JOIN FOR COUNTRY (This replaces the massive 'INSET' logic)
+    # We join our main data against the small lookup table
+    df = df.join(F.broadcast(lookup_df), df.raw_last_part == lookup_df.raw_name, "left")
+    
+    # Assign the result of the join to 'country'
+    df = df.withColumn("country", F.coalesce(F.col("clean_country"), F.lit("Unknown")))
 
-    # Null checks
-    null_check(df, table_name='USERS')
-     
+    # 6. CITY & REGION LOGIC (Simplified to avoid 64KB error)
+    # Check if first part contains digits (address)
+# 6. CITY & REGION LOGIC
+    first_has_digits = F.col("raw_first_part").rlike(r"\d")
 
-    # df = split_location(df, "city", 0, Config.EXCEPTIONS_LIST)
-    # df = split_location(df, "region", 1, Config.EXCEPTIONS_LIST)
-    # df = split_location(df, "country", 2, Config.EXCEPTIONS_LIST)
-    df = split_location(df)
+    df = df.withColumn("city", 
+        F.when((F.col("loc_size") >= 3) & first_has_digits, clean_simple(F.col("raw_second_part")))
+        .otherwise(clean_simple(F.col("raw_first_part")))
+    )
 
-    df = df.drop(F.col("split_parts"))
-    df = df.withColumn("ingested_at", F.current_timestamp())
+    df = df.withColumn("region", 
+        # If address exists (size 4), region is usually the 3rd part
+        F.when((F.col("loc_size") >= 4) & first_has_digits, clean_simple(F.col("raw_pre_last_part")))
+        # Standard case: region is the part before the country
+        .when(F.col("loc_size") >= 2, clean_simple(F.col("raw_pre_last_part")))
+        .otherwise(F.lit("Unknown"))
+    )
 
-    df.show()
+    # 7. CLEANUP & FINALIZE
+    df = df.select(
+        "user_id", "location", "age", "country", "city", "region",
+        F.current_timestamp().alias("ingested_at")
+    )
 
-    logger.info(f"Writing transformed USERS data from {input_path} source to: {output_path}")
-    df.write.mode("overwrite").parquet(output_path)
+    null_check(df, "USERS")
+    df.show(10)
+
+    logger.info(f"Writing transformed USERS to: {output_path}")
+    df.coalesce(1).write.mode("overwrite").parquet(output_path)
     logger.info("Write operation completed.")
 
 
