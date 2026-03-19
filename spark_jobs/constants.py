@@ -60,14 +60,14 @@ class Config:
     # --- PATHS ---
     # Ensure these names match EXACTLY what is in your GCS bucket
     INPUT_PATH_BOOKS = "gs://kestra-books-bucket-latypov/raw/Books.csv"
-    OUTPUT_PATH_BOOKS = "gs://kestra-books-bucket-latypov/pyspark_transformed/books" 
+    OUTPUT_PATH_BOOKS = "gs://kestra-books-bucket-latypov/staging/books" 
 
     INPUT_PATH_USERS = "gs://kestra-books-bucket-latypov/raw/Users.csv"
-    OUTPUT_PATH_USERS = "gs://kestra-books-bucket-latypov/pyspark_transformed/users" 
+    OUTPUT_PATH_USERS = "gs://kestra-books-bucket-latypov/staging/users" 
 
     # FIXED: Changed Rating.csv to Ratings.csv
     INPUT_PATH_RATING = "gs://kestra-books-bucket-latypov/raw/Ratings.csv"
-    OUTPUT_PATH_RATING = "gs://kestra-books-bucket-latypov/pyspark_transformed/ratings"
+    OUTPUT_PATH_RATING = "gs://kestra-books-bucket-latypov/staging/ratings"
 
     CSV_OPTIONS = {
         "header": True,
