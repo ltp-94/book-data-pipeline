@@ -7,7 +7,7 @@ tasks:
     tasks:
       - id: clone_repository
         type: io.kestra.plugin.git.Clone
-        url: https://github.com/OleksiiLatypov/books-data-pipeline
+        url: https://github.com/ltp-94/book-data-pipeline
         branch: main
 
       - id: gcs_spark_transformation

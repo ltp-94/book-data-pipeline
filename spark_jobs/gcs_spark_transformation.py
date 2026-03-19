@@ -123,7 +123,7 @@ def process_users(spark, input_path, output_path):
 
     df = df.withColumn("age", F.col("age").cast("int"))
 
-    df = df.withColumn('split_parts', F.split(F.col("location"), ", "))
+    #df = df.withColumn('split_parts', F.split(F.col("location"), ", "))
 
     # Null checks
     null_amount = null_check(df)
