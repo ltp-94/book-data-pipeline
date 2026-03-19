@@ -25,7 +25,7 @@ if not key_path or not os.path.exists(key_path):
     else:
         key_path = "gcp-key.json"
 
-logger.info(f"\n\n\n# --- 2. PATH LOGIC GCP_KEY_PATH ---\n")      
+logger.info(f"\n\n# --- 2. PATH LOGIC GCP_KEY_PATH ---\n")      
 logger.info(f"Using GCP Key from: {key_path}\n")
 
 
@@ -38,7 +38,7 @@ spark = (SparkSession.builder
     .config("spark.hadoop.google.cloud.auth.service.account.json.keyfile", key_path)
     .getOrCreate())
 
-logger.info(f"\n\n\n# --- 3. SPARK SESSION ---")
+logger.info(f"\n\n# --- 3. SPARK SESSION ---")
 logger.info(f"Spark version: {spark.version}")
 # Reduce Spark internal noise
 spark.sparkContext.setLogLevel("WARN")
@@ -47,7 +47,7 @@ spark.sparkContext.setLogLevel("WARN")
 # --- 4. PROCESS BOOKS DATA ---
 
 def process_books(spark, input_path, output_path):
-    logger.info(f"\n\n\n# --- 4. PROCESS BOOKS DATA ---")
+    logger.info(f"\n\n# --- 4. PROCESS BOOKS DATA ---")
     logger.info(f"Reading CSV from: {input_path}")
     
     df = spark.read.options(**Config.CSV_OPTIONS).schema(Schemas.BOOKS_SCHEMA).csv(input_path)
@@ -64,8 +64,8 @@ def process_books(spark, input_path, output_path):
     logger.info(f"Distinct ISBN count: {isbn_distinct}")
     
     # Null checks
-    null_amount = null_check(df)
-    logger.info(f'Check missing values for BOOKS data: {null_amount}')
+    null_check(df, table_name='BOOKS')
+    
 
     # Handling shifted rows
     df = df.withColumn("split_parts", F.split(F.col("title"), r'\";'))
@@ -96,7 +96,7 @@ def process_books(spark, input_path, output_path):
     df = df.withColumn("ingested_at", F.current_timestamp())
 
     logger.info(f"Writing transformed BOOKS data from {input_path} source to: {output_path}")
-    df.coalesce(1).write.mode("overwrite").parquet(output_path)
+    df.write.mode("overwrite").parquet(output_path)
     logger.info("Write operation completed.")
 
 
@@ -121,13 +121,12 @@ def process_users(spark, input_path, output_path):
     logger.info("Sample rows USERS data:")
     df.show(5)
 
-    df = df.withColumn("age", F.col("age").cast("int"))
+    df = df.withColumn("age", F.expr("try_cast(age AS float)").cast("int"))
 
     #df = df.withColumn('split_parts', F.split(F.col("location"), ", "))
 
     # Null checks
-    null_amount = null_check(df)
-    logger.info(f'Check missing values for USERS data: {null_amount}\n')
+    null_check(df, table_name='USERS')
      
 
     # df = split_location(df, "city", 0, Config.EXCEPTIONS_LIST)
@@ -141,7 +140,7 @@ def process_users(spark, input_path, output_path):
     df.show()
 
     logger.info(f"Writing transformed USERS data from {input_path} source to: {output_path}")
-    df.coalesce(1).write.mode("overwrite").parquet(output_path)
+    df.write.mode("overwrite").parquet(output_path)
     logger.info("Write operation completed.")
 
 
@@ -152,28 +151,28 @@ def process_users(spark, input_path, output_path):
 
 def process_rating(spark, input_path, output_path):
 
-    logger.info(f"\n\n\n# --- 5. PROCESS RATING DATA ---")
-    logger.info(f"Reading RATING Data from: {input_path}")
+    logger.info(f"\n\n\n# --- 5. PROCESS RATINGS DATA ---")
+    logger.info(f"Reading RATINGS Data from: {input_path}")
 
     df = spark.read.options(**Config.CSV_OPTIONS).schema(Schemas.RATINGS_SCHEMA).csv(input_path)
 
-    logger.info(f"Schema for RATING data loaded")
+    logger.info(f"Schema for RATINGS data loaded")
 
     df.printSchema()
 
     row_count = df.count()
-    logger.info(f"Total rows for RATING data: {row_count}")
+    logger.info(f"Total rows for RATINGS data: {row_count}")
 
-    logger.info("Sample rows RATING data:")
+    logger.info("Sample rows RATINGS data:")
     df.show(5)
     
     # Null checks
-    null_amount = null_check(df)
-    logger.info(f'Check missing values for USERS data: {null_amount}\n')
+    null_amount = null_check(df, table_name='RATINGS')
+
     df = df.withColumn("ingested_at", F.current_timestamp())
 
-    logger.info(f"Writing transformed RATING data from {input_path} source to: {output_path}")
-    df.coalesce(1).write.mode("overwrite").parquet(output_path)
+    logger.info(f"Writing transformed RATINGS data from {input_path} source to: {output_path}")
+    df.write.mode("overwrite").parquet(output_path)
     logger.info("Write operation completed.")
 
 

@@ -1,6 +1,6 @@
 import logging
 from pyspark.sql import functions as F
-# from constants import Config
+from constants import Config
 
 
 # Setup logger for the utils file
@@ -175,9 +175,10 @@ def split_location(df):
  
 
 
-def null_check(df):
+def null_check(df, table_name="Data"):
     """Checks and logs null counts for all columns."""
-    logger.info(f'\nCheck missing values for USERS data:\n')
+    # Use the table_name variable here!
+    logger.info(f'\nCheck missing values for {table_name}:\n') 
     for c in df.columns:
         null_counts = df.filter(df[c].isNull()).count()
         if null_counts > 0:

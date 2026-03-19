@@ -1,4 +1,4 @@
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType
+from pyspark.sql.types import StructType, StructField, StringType, IntegerType, LongType
 
 class Config:
     ENCODING_FIXES = {
@@ -11,7 +11,15 @@ class Config:
                     }
 
     EXCEPTIONS_LIST = ["ny", "nyc", "la", "dc", "sf", "usa", "uk", "uae", "eu", "u.a.e"]
+
     NOISE_TOKENS = ["n/a", "null", "none", "unknown", "", "n/a,"]
+
+    USA_VARIANTS = ["united states", "united states of america", "united staets of america", "us", "u.s.a", "usa"]
+
+    UK_VARIANTS  = ["united kingdom", "great britain", "england", "uk"]
+
+    UAE_VARIANTS = ["uae", "u.a.e", "united arab emirates"]
+
     VALID_COUNTRIES = [
     # North America & Caribbean
     "usa", "united states", "u.s.a.", "united states of america", "canada", "mexico", 
@@ -96,13 +104,13 @@ class Schemas:
     ])
 
     USERS_SCHEMA = StructType([
-        StructField("user_id", IntegerType(), True),
+        StructField("user_id", LongType(), True),
         StructField("location", StringType(), True),
-        StructField("age", IntegerType(), True)
+        StructField("age", StringType(), True)
     ])
 
     RATINGS_SCHEMA = StructType([
-        StructField("user_id", IntegerType(), True),
+        StructField("user_id", LongType(), True),
         StructField("ISBN", StringType(), True),
         StructField("book_rating", IntegerType(), True)
     ])
