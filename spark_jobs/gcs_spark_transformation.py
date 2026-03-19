@@ -4,7 +4,7 @@ import logging
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from constants import Config, Schemas
-from pyspark_utils import split_location_raw, null_check
+from pyspark_utils import split_location_raw, null_check, clean_simple
 
 # --- 1. CONFIGURE LOGGING ---
 logging.basicConfig(
@@ -163,7 +163,7 @@ def process_users(spark, input_path, output_path):
     df.show(10)
 
     logger.info(f"Writing transformed USERS to: {output_path}")
-    df.coalesce(1).write.mode("overwrite").parquet(output_path)
+    df.write.mode("overwrite").parquet(output_path)
     logger.info("Write operation completed.")
 
 
