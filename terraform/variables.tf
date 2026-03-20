@@ -15,7 +15,7 @@ variable "location" {
 
 variable "bq_dataset_name" {
   description = "BigQuery Dataset for Books, Users, Ratings"
-  default     = "books_dataset_project"
+  default     = "staging_books_data"
 }
 
 variable "gcs_bucket_name" {

@@ -32,7 +32,7 @@ services:
       - |
         terraform init &&
         terraform import google_storage_bucket.books-bucket kestra-books-bucket-latypov || true &&
-        terraform import google_bigquery_dataset.demo-dataset books-pipeline-490008:books_dataset_project || true &&
+        terraform import google_bigquery_dataset.demo-dataset books-pipeline-490008:staging_books_data || true &&
         terraform plan -out=tfplan &&
         terraform apply -auto-approve
     networks:

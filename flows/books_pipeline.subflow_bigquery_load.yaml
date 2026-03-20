@@ -40,6 +40,7 @@ tasks:
         user_id INT64,
         location STRING,
         age INT64,
+        age_anomaly INT64,
         city STRING,
         region STRING,
         country STRING,
