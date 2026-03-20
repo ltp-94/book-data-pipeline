@@ -137,7 +137,6 @@ def process_users(spark, input_path, output_path):
 
     # 6. CITY & REGION LOGIC (Simplified to avoid 64KB error)
     # Check if first part contains digits (address)
-# 6. CITY & REGION LOGIC
     first_has_digits = F.col("raw_first_part").rlike(r"\d")
 
     df = df.withColumn("city", 
@@ -153,9 +152,11 @@ def process_users(spark, input_path, output_path):
         .otherwise(F.lit("Unknown"))
     )
 
+
     # 7. CLEANUP & FINALIZE
+    df = df.withColumn("age_anomaly", F.when((F.col("age") < 5) | (F.col("age") > 100), 1).otherwise(0))
     df = df.select(
-        "user_id", "location", "age", "country", "city", "region",
+        "user_id", "location", "age", "age_anomaly", "country", "city", "region",
         F.current_timestamp().alias("ingested_at")
     )
 
